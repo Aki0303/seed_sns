@@ -7,6 +7,7 @@
     // 半角スペース。全角スペースを除去
     $nick_name = trim(mb_convert_kana($_POST['nick_name'], "s", 'UTF-8'));
     $email = trim(mb_convert_kana($_POST['email'], "s", 'UTF-8'));
+    $password = trim(mb_convert_kana($_POST['password'], "s", 'UTF-8'));
 
     // エラー項目の確認
 
@@ -24,9 +25,10 @@
     }
 
     // パスワードが未入力
-    if ($_POST['password'] == '') {
-      $errot['password'] = 'blank';
-    } elseif (strlen($_POST['password']) <4 ) {
+    // if ($_POST['password'] == '') {
+    if ($password == '') {
+      $error['password'] = 'blank';
+    } elseif (strlen($password) < 4 ) {
       // パスワードが４文字より少ない
       $error['password'] = 'length';
     }
@@ -136,7 +138,11 @@
           <div class="form-group">
             <label class="col-sm-4 control-label">パスワード</label>
             <div class="col-sm-8">
-              <input type="password" name="password" class="form-control" placeholder="" >
+              <?php if (isset($_POST['password'])): ?>
+                <input type="password" name="password" class="form-control" placeholder="" value="<?php echo htmlspecialchars($_POST['password'], ENT_QUOTES,'UTF-8'); ?>">
+              <?php else: ?>
+                <input type="password" name="password" class="form-control" placeholder="" >
+              <?php endif ?>
               <?php if (isset($error['password']) && $error['password'] == 'blank'): ?>
                 <p class="error">パスワードを入力してください。</p>
               <?php endif; ?>
