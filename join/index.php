@@ -4,9 +4,13 @@
 
   // フォームからデータが送信された場合
   if (!empty($_POST)) {
+    // 半角スペース。全角スペースを除去
+    $nick_name = trim(mb_convert_kana($_POST['nick_name'], "s", 'UTF-8'));
+
     // エラー項目の確認
     // ニックネームが未入力
-    if ($_POST['nick_name'] == '') {
+    // if ($_POST['nick_name'] == '') {
+    if ($nick_name == '') {
       $error['nick_name'] = 'blank';
     }
 
@@ -125,10 +129,10 @@
             <label class="col-sm-4 control-label">パスワード</label>
             <div class="col-sm-8">
               <input type="password" name="password" class="form-control" placeholder="" >
-              <?php if ($error['password'] == 'blank'): ?>
+              <?php if (isset($error['password']) == 'blank'): ?>
                 <p class="error">パスワードを入力してください。</p>
               <?php endif; ?>
-              <?php if ($error['password'] == 'length'): ?>
+              <?php if (isset($error['password']) == 'length'): ?>
                 <p class="error">パスワードは４文字以上で入力してください。</p>
               <?php endif; ?>
             </div>
