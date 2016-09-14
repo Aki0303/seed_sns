@@ -6,6 +6,9 @@
   if (!empty($_POST)) {
     // 半角スペース。全角スペースを除去
     $nick_name = trim(mb_convert_kana($_POST['nick_name'], "s", 'UTF-8'));
+    $email = trim(mb_convert_kana($_POST['email'], "s", 'UTF-8'));
+
+    // エラー項目の確認
 
     // エラー項目の確認
     // ニックネームが未入力
@@ -15,7 +18,8 @@
     }
 
     // メールアドレスが未入力
-    if ($_POST['email'] == '') {
+    // if ($_POST['email'] == '') {
+    if ($email == '') {
       $error['email'] = 'blank';
     }
 
@@ -118,8 +122,12 @@
           <div class="form-group">
             <label class="col-sm-4 control-label">メールアドレス</label>
             <div class="col-sm-8">
-              <input type="email" name="email" class="form-control" placeholder="例： seed@nex.com" >
-              <?php if (isset($error['email']) == 'blank'): ?>
+              <?php if (isset($_POST['email'])): ?>
+                <input type="email" name="email" class="form-control" placeholder="例： seed@nex.com" value="<?php echo htmlspecialchars($_POST['email'], ENT_QUOTES,'UTF-8'); ?>">
+              <?php else: ?>
+                <input type="email" name="email" class="form-control" placeholder="例： seed@nex.com" >
+              <?php endif; ?>
+              <?php if (isset($error['email']) && $error['email'] == 'blank'): ?>
                 <p class="error">メールアドレスを入力してください。</p>
               <?php endif; ?>
             </div>
@@ -129,10 +137,10 @@
             <label class="col-sm-4 control-label">パスワード</label>
             <div class="col-sm-8">
               <input type="password" name="password" class="form-control" placeholder="" >
-              <?php if (isset($error['password']) == 'blank'): ?>
+              <?php if (isset($error['password']) && $error['password'] == 'blank'): ?>
                 <p class="error">パスワードを入力してください。</p>
               <?php endif; ?>
-              <?php if (isset($error['password']) == 'length'): ?>
+              <?php if (isset($error['password']) && $error['password'] == 'length'): ?>
                 <p class="error">パスワードは４文字以上で入力してください。</p>
               <?php endif; ?>
             </div>
