@@ -32,22 +32,37 @@
       // パスワードが４文字より少ない
       $error['password'] = 'length';
     }
-
+    // 画像ファイルの拡張子チェック
+    $fileName = $_FILES['picture_path']['name'];
+    if (!empty($fileName)) {
+      $ext = substr($fileName, -3);
+      $ext = strtolower($ext);
+      if ($ext != 'jpg' && $ext != 'gif' && $ext != 'png') {
+        $error['picture_path'] = 'type';
+      }
+    }
 
     // エラーがない場合
     if (empty($error)) {
+      // 画像をアップロードする
+      $picture_path = date('YmdHis') . $_FILES['picture_path']['name'];
+      move_uploaded_file($_FILES['picture_path']['tmp_name'], '../member_picture/' . $picture_path);
       // セッションに値を保存
-      $_SESSION['join'] = $_POST;
+      $_SESSION['join']                 = $_POST;
+      $_SESSION['join']['picture_path'] = $picture_path;
       // sheck.phpへ移動
       header('Location: check.php');
       exit();
     }
   }
 
-
-
-
-
+  //書き直し
+  // issetは値が何もないことを確かめるもので、エラー表示を削除することができる
+  if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'rewrite') {
+    // $_GET['action] == 'rewruite'　でも良い]
+    $_POST            = $_SESSION['join'];
+    $error['rewrite'] = true;
+  }
 
  ?>
 
@@ -156,6 +171,13 @@
             <label class="col-sm-4 control-label">プロフィール写真</label>
             <div class="col-sm-8">
               <input type="file" name="picture_path" class="form-control">
+              <?php if (isset($error['picture_path']) == 'type'): ?>
+                <p class = "error"> 写真などは「.gif」、「.jpg」、「.png」の画像を指定してください </p>
+              <?php endif; ?>
+              <?php if (!empty($error)): ?>
+                <p class = "error"> 恐れ入りますが、画像を改めて指定してください</p>
+              <?php endif; ?>
+
             </div>
           </div>
 
