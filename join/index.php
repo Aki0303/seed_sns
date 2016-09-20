@@ -1,4 +1,10 @@
 <?php 
+  // dbconnect.phpを読み込む
+  require('../dbconnect.php');
+
+
+
+
   // セッションを使うページに必ず入れる
   session_start();
 
@@ -6,8 +12,8 @@
   if (!empty($_POST)) {
     // 半角スペース。全角スペースを除去
     $nick_name = trim(mb_convert_kana($_POST['nick_name'], "s", 'UTF-8'));
-    $email = trim(mb_convert_kana($_POST['email'], "s", 'UTF-8'));
-    $password = trim(mb_convert_kana($_POST['password'], "s", 'UTF-8'));
+    $email     = trim(mb_convert_kana($_POST['email'], "s", 'UTF-8'));
+    $password  = trim(mb_convert_kana($_POST['password'], "s", 'UTF-8'));
 
     // エラー項目の確認
 
@@ -42,6 +48,21 @@
       }
     }
 
+    // メールアドレスの重複チェック
+    if (empty($error)) {
+      $sql = sprintf('SELECT COUNT(*) AS cnt FROM `members` WHERE `email` = "%s"',
+        mysqli_real_escape_string($db, $email)
+        );
+      // SQL実行(失敗したらエラーを表示)
+      $record = mysqli_query($db, $sql) or die(mysqli_error($db));
+      // 連想配列としてSQLの実行結果を受け取る(keyと値)
+      $table = mysqli_fetch_assoc($record);
+      if ($table['cnt'] > 0) {
+        // 同じメールアドレスが１件以上あったらエラー
+        $error['email'] = 'duplicate';
+      }
+    }
+
     // エラーがない場合
     if (empty($error)) {
       // 画像をアップロードする
@@ -57,7 +78,7 @@
   }
 
   //書き直し
-  // issetは値が何もないことを確かめるもので、エラー表示を削除することができる
+  // issetは値があることを確かめるもので、エラー表示を削除することができる
   if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'rewrite') {
     // $_GET['action] == 'rewruite'　でも良い]
     $_POST            = $_SESSION['join'];
@@ -145,7 +166,10 @@
                 <input type="email" name="email" class="form-control" placeholder="例： seed@nex.com" >
               <?php endif; ?>
               <?php if (isset($error['email']) && $error['email'] == 'blank'): ?>
-                <p class="error">メールアドレスを入力してください。</p>
+                <p class="error">* メールアドレスを入力してください。</p>
+              <?php endif; ?>
+              <?php if (isset($error['email']) && $error['email'] =='duplicate') : ?>
+                <p class="error">* 指定したメールアドレスはすでに登録されています。</p>
               <?php endif; ?>
             </div>
           </div>
@@ -159,10 +183,10 @@
                 <input type="password" name="password" class="form-control" placeholder="" >
               <?php endif ?>
               <?php if (isset($error['password']) && $error['password'] == 'blank'): ?>
-                <p class="error">パスワードを入力してください。</p>
+                <p class="error">* パスワードを入力してください。</p>
               <?php endif; ?>
               <?php if (isset($error['password']) && $error['password'] == 'length'): ?>
-                <p class="error">パスワードは４文字以上で入力してください。</p>
+                <p class="error">* パスワードは４文字以上で入力してください。</p>
               <?php endif; ?>
             </div>
           </div>
@@ -172,10 +196,10 @@
             <div class="col-sm-8">
               <input type="file" name="picture_path" class="form-control">
               <?php if (isset($error['picture_path']) == 'type'): ?>
-                <p class = "error"> 写真などは「.gif」、「.jpg」、「.png」の画像を指定してください </p>
+                <p class = "error">* 写真などは「.gif」、「.jpg」、「.png」の画像を指定してください </p>
               <?php endif; ?>
               <?php if (!empty($error)): ?>
-                <p class = "error"> 恐れ入りますが、画像を改めて指定してください</p>
+                <p class = "error">* 恐れ入りますが、画像を改めて指定してください</p>
               <?php endif; ?>
 
             </div>

@@ -1,11 +1,32 @@
 <?php
-// セッションを使うページではこの記述を入れる
-session_start();
+  // セッションを使うページではこの記述を入れる
+  session_start();
 
-if (!isset($_SESSION['join'])) {
-  header('Location: index.php');
-  exit();
-}
+  // dbconnect.phpを読み込む
+  require('../dbconnect.php');
+
+  // セッションにデータがなかったらindex.phpへ
+  if (!isset($_SESSION['join'])) {
+    header('Location: index.php');
+    exit();
+  }
+
+  // DB登録処理
+  if (!empty($_POST)) {
+    $sql = sprintf('INSERT INTO `members` SET `nick_name` = "%s", `email` = "%s", password = "%s", `picture_path` = "%s", created = now()',
+    mysqli_real_escape_string($db, $_SESSION['join']['nick_name']),
+    mysqli_real_escape_string($db, $_SESSION['join']['email']),
+    mysqli_real_escape_string($db, sha1($_SESSION['join']['password'])),
+    mysqli_real_escape_string($db, $_SESSION['join']['picture_path'])
+    );
+
+    mysqli_query($db, $sql) or die(mysqli_error($db));
+    unset($_SESSION['join']);
+
+    // thanks.phpへリダイレクト
+    header('Location: thanks.php');
+    exit();
+  }
 
 ?>
 
