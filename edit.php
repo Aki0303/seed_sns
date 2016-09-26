@@ -9,10 +9,25 @@
   }
 
   // 投稿を取得する
-  $sql = sprintf('SELECT m.`nick_name`, m.`picture_path`, t.* FROM `tweets` t, `members` m WHERE m.`member_id` = t.`member_id` AND t.`tweet_id` = %d',
+  $sql = sprintf('SELECT m.`nick_name`, m.`picture_path`, t.* FROM `tweets` t, `members` m WHERE m.`member_id` = t.`member_id` AND t.`tweet_id` = %d ORDER BY t.`created` DESC',
     mysqli_real_escape_string($db, $_REQUEST['tweet_id'])
   );
   $tweets = mysqli_query($db, $sql) or die(mysqli_error($db));
+
+  // // POSTでデータが送信されたとき
+  // if(!empty($_POST)){
+  //   if ($_POST['tweet'] != '') {
+  //       $sql = sprintf('UPDATE `tweets` SET `tweet`= "%s" WHERE `tweet_id` = %d',
+  //   mysqli_real_escape_string($db, $_POST['tweet']),
+  //   mysqli_real_escape_string($db, $_REQUEST['tweet_id'])
+  //   );
+  //   mysqli_query($db, $sql) or die(mysqli_error($db));
+
+  //   header('Location: index.php');
+  //   exit();
+  //   }
+  // }
+
 
 
   // htmlspecialcharsのショートカット
@@ -75,24 +90,31 @@
     <div class="row">
       <div class="col-md-4 col-md-offset-4 content-margin-top">
         <?php if ($tweet = mysqli_fetch_assoc($tweets)): ?>
-          <div class="msg">
-            <img src="member_picture/<?php echo h($tweet['picture_path']); ?>" width="100" height="100">
-            <p>投稿者 : <span class="name"><?php echo h($tweet['nick_name']); ?></span></p>
-              <!-- つぶやき -->
-              <div class="form-group">
-                <label class="col-sm-4 control-label">つぶやき</label>
-                <div class="col-sm-8">
-                  <form method="post" action="update.php?friend_id=<?php echo $tweet['tweet_id']; ?>" class="form-horizontal" role="form">
-                    <?php if($_SESSION['id'] == $tweet['member_id']): ?>
-                      <input name="tweet" type="textarea" cols="100" rows="10" class="form-control" placeholder="例：変更内容をご記入ください。" value="<?php echo h($tweet['tweet']); ?>">
-                      <input type="submit" class="btn btn-default" value="変更する">
+          <form method="post" action="update.php?friend_id=<?php echo $tweet['tweet_id']; ?>" class="form-horizontal" role="form">
+            <div class="msg">
+              <img src="member_picture/<?php echo h($tweet['picture_path']); ?>" width="100" height="100">
+                <p>投稿者 : <span class="name"><?php echo h($tweet['nick_name']); ?></span></p>
+                <!-- つぶやき -->
+                  <div class="form-group">
+                    <p>
+                      つぶやき：<br>
+                      <textarea name="tweet" cols="50" rows="2" class="form-control"><?php echo h($tweet['tweet']); ?></textarea>
                       <input type="hidden" name="tweet_id" value="<?php echo h($_REQUEST['tweet_id']); ?>">
-                    <?php endif; ?>
+
+                    </p>
+                    <p class="day">
+                      <?php echo h($tweet['created']); ?>
+                    </p>
+                    <input type="submit" class="btn btn-default" value="変更する">
+                  </div>
+            </div>
+          </form>
         <?php else: ?>
-                      <p>この投稿は削除されたか、URLが間違っています。</p></p>
+                <p>この投稿は削除されたか、URLが間違っています。</p></p>
         <?php endif; ?>
-                      <a href="index.php">&laquo;&nbsp;一覧へ戻る</a>
-                </form>
+                <a href="index.php">&laquo;&nbsp;一覧へ戻る</a>
+                  </div>
+                </div>
               </div>
 
 

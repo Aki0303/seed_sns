@@ -29,7 +29,7 @@
 <script language="JavaScript">
 <!--
 // 一定時間経過後に指定ページにジャンプする
-mnt = 3; // 何秒後に移動するか？
+mnt = 2; // 何秒後に移動するか？
 url = "index.php"; // 移動するアドレス
 function jumpPage() {
   location.href = url;
@@ -39,7 +39,7 @@ setTimeout("jumpPage()",mnt*1000)
 </script>
 </head>
 <body bgcolor="#ffffff">
- <p>投稿内容を変更しました。</p>
+ <p>変更内容を変更しました。</p>
  <p>自動的に画面が切り替わります。画面が切り替わらない場合は、リンクをクリックしてください。</p>
  <a href="index.php">最初の画面に戻る</a>
 </body>
