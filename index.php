@@ -25,6 +25,103 @@
     header('Location: login.php');
   }
 
+
+  // 投稿を記録する（「つぶやく」ボタンをクリックした時）
+  if (!empty($_POST)) {
+    if ($_POST['tweet'] != '') {
+      $sql = sprintf('INSERT INTO `tweets`SET `tweet`= "%s", `member_id` = %d, `reply_tweet_id` = %d, `created` = now()',
+        mysqli_real_escape_string($db, $_POST['tweet']),
+        mysqli_real_escape_string($db, $member['member_id']),
+        mysqli_real_escape_string($db, $_POST['reply_tweet_id'])
+        );
+
+      mysqli_query($db, $sql) or die(mysqli_error($db));
+      // SQL実行後、画面を再度表示する
+      header('Location: index.php');
+      exit();
+
+    }
+  }
+
+
+
+  // 返信の場合
+  if (isset($_REQUEST['res'])) {
+    $sql = sprintf('SELECT m.`nick_name`, m.`picture_path`, t.* FROM `tweets` t, `members` m WHERE m.`member_id` = t.`member_id` AND t.`tweet_id` = %d ORDER BY t.`created` DESC',
+      mysqli_real_escape_string($db, $_REQUEST['res'])
+    );
+    $record = mysqli_query($db, $sql) or die(mysqli_error($db));
+    $table  = mysqli_fetch_assoc($record);
+    $tweet  = '@'. $table['nick_name'] . ' ' . $table['tweet'];
+  }
+
+
+  // ページングの設置
+  $page = '';
+  // GETパラメーターで渡されるページ番号を取得
+  if (isset($_REQUEST['page'])) {
+    $page = $_REQUEST['page'];
+  }
+  // pageパラメーターがない場合は、ページ番号を１にする
+  if ($page == '') {
+    $page = 1;
+  }
+
+  // max関数：()内に指定した複数のデータから、一番大きい値を返す。
+  // ①表示する正しいページの数値(Min)を設定
+  $page = max($page, 1);
+
+  // ②必要なページ数を計算する
+  if (isset($_GET['search_word']) && !empty($_GET['search_word'])) {
+    $sql = sprintf('SELECT COUNT(*) AS cnt FROM `tweets` WHERE `tweet` LIKE "%%%s%%"',
+      mysqli_real_escape_string($db, $_GET['search_word'])
+    );
+  } else {
+    $sql = 'SELECT COUNT(*) AS cnt FROM `tweets`';
+  }
+
+    $recordSet = mysqli_query($db, $sql) or die(mysqli_error($db));
+    $table     = mysqli_fetch_assoc($recordSet);
+    // ceil()関数：切り上げする関数
+    $maxPage   = ceil($table['cnt'] / 5);
+
+    // ③表示する正しいページ数の数値(Max)を設定
+    $page = min($page, $maxPage);
+
+    // ④ページに表示する変数だけ取得
+    $start = ($page - 1) * 5;
+    $start = max(0, $start);
+
+
+  // 検索の場合
+  if (isset($_GET['search_word']) && !empty($_GET['search_word'])) {
+    $sql = sprintf('SELECT m.`nick_name`, m.`picture_path`, t.* FROM `tweets` t, `members` m WHERE t.`member_id` = m.`member_id` AND t.`tweet` LIKE "%%%s%%" ORDER BY t.`created` DESC LIMIT %d, 5',
+        mysqli_real_escape_string($db, $_GET['search_word']),
+        $start
+    );
+  } else {
+    // 投稿内容（表示するページ分）を取得する
+    $sql = sprintf('SELECT m.`nick_name`, m.`picture_path`, t.* FROM `tweets` t, `members` m WHERE t.`member_id` = m.`member_id` ORDER BY t.`created` DESC LIMIT %d, 5',
+        $start
+      );
+
+  // %dに$startの値を入れる
+}
+
+  $tweets = mysqli_query($db, $sql) or die(mysqli_error($db));
+  
+
+  // htmlspecialcharsのショートカット
+  function h($value) {
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+  }
+
+  // 本文内のURLにリンクを設定する
+  function makeLink($value) {
+    return mb_ereg_replace('(https?)(://[[:alnum:]¥+¥$¥;¥?¥.%,!#~*/:@&=_-]+)', '<a href="\1\2" target="_blank">\1\2</a>' ,$value);
+  }
+
+
 ?>
 
 
@@ -68,7 +165,7 @@
           <!-- Collect the nav links, forms, and other content for toggling -->
           <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
               <ul class="nav navbar-nav navbar-right">
-                <li><a href="logout.html">ログアウト</a></li>
+                <li><a href="logout.php">ログアウト</a></li>
               </ul>
           </div>
           <!-- /.navbar-collapse -->
@@ -79,82 +176,93 @@
   <div class="container">
     <div class="row">
       <div class="col-md-4 content-margin-top">
-        <legend>ようこそ<?php echo htmlspecialchars($member['nick_name'], ENT_QUOTES, 'UTF-8'); ?>さん！</legend>
+        <legend>ようこそ<?php echo h($member['nick_name']); ?>さん！</legend>
         <form method="post" action="" class="form-horizontal" role="form">
             <!-- つぶやき -->
             <div class="form-group">
               <label class="col-sm-4 control-label">つぶやき</label>
               <div class="col-sm-8">
-                <textarea name="tweet" cols="50" rows="5" class="form-control" placeholder="例：Hello World!"></textarea>
+                  <?php if (isset($tweet)): ?>
+                    <textarea name="tweet" cols="50" rows="5" class="form-control" placeholder="例：Hello World!"><?php echo h($tweet); ?></textarea>
+                    <input type="hidden" name="reply_tweet_id" value="<?php echo h($_REQUEST['res']); ?>">
+                  <?php else: ?>
+                    <textarea name="tweet" cols="50" rows="5" class="form-control" placeholder="例：Hello World!"></textarea>
+                  <?php endif; ?>
               </div>
             </div>
           <ul class="paging">
+          <?php 
+            $word = '';
+            if (isset($_GET['search_word'])) {
+              $word = '&search_word=' . $_GET['search_word'];
+            }
+           ?>
             <input type="submit" class="btn btn-info" value="つぶやく">
                 &nbsp;&nbsp;&nbsp;&nbsp;
-                <li><a href="index.html" class="btn btn-default">前</a></li>
+                <?php if($page > 1): ?>
+                <li><a href="index.php?page=<?php echo $page -1; ?><?php echo $word; ?>" class="btn btn-default">前</a></li>
+                <?php else: ?>
+                <li>前</li>
+                <?php endif; ?>
                 &nbsp;&nbsp;|&nbsp;&nbsp;
-                <li><a href="index.html" class="btn btn-default">次</a></li>
+                <?php if($page < $maxPage): ?>
+                <li><a href="index.php?page=<?php echo $page +1; ?><?php echo $word; ?>" class="btn btn-default">次</a></li>
+                <?php else: ?>
+                <li>次</li>
+                <?php endif; ?>
           </ul>
         </form>
       </div>
 
       <div class="col-md-8 content-margin-top">
+      <!-- 検索ボックス -->
+        <form action="" method="get" class="form-horizontal" role="form">
+          <?php if (isset($_GET['search_word']) && !empty($_GET['search_word'])): ?>
+            <input type="text" name="search_word" value="<?php echo $_GET['search_word']; ?>">
+          <?php else: ?>
+            <input type="text" name="search_word" value="">
+          <?php endif; ?>
+          <input type="submit" class="btn btn-success btn-xs" value="検索">
+        </form>
+      <!-- ここでつぶやいた内容を繰り返し表示する -->
+        <?php while($tweet = mysqli_fetch_assoc($tweets)): ?>
         <div class="msg">
-          <img src="http://c85c7a.medialib.glogster.com/taniaarca/media/71/71c8671f98761a43f6f50a282e20f0b82bdb1f8c/blog-images-1349202732-fondo-steve-jobs-ipad.jpg" width="48" height="48">
-          <p>
-            つぶやき４<span class="name"> (Seed kun) </span>
-            [<a href="#">Re</a>]
+          <img src="member_picture/<?php echo h($tweet['picture_path']); ?>" width="48" height="48" alt="<?php echo h($tweet['nick_name']); ?>">
+          <p><?php echo makeLink(h($tweet['tweet'])); ?>
+            <span class="name">(<?php echo h($tweet['nick_name']); ?>)</span>
+
+            [<a href="index.php?res=<?php echo h($tweet['tweet_id']); ?>">Re</a>]</p>
           </p>
           <p class="day">
-            <a href="view.html">
-              2016-01-28 18:04
+            <a href="view.php?tweet_id=<?php echo h($tweet['tweet_id']); ?>">
+              <?php echo h($tweet['created']); ?>
             </a>
-            [<a href="#" style="color: #00994C;">編集</a>]
-            [<a href="#" style="color: #F33;">削除</a>]
+            <?php if($tweet['reply_tweet_id'] > 0 ): ?>
+              | <a href="view.php?tweet_id=<?php echo h($tweet['reply_tweet_id']) ?>"> | 返信元のつぶやき</a>
+            <?php endif; ?>
+            
+            <?php if($_SESSION['id'] == $tweet['member_id']): ?>
+              [<a href="edit.php?tweet_id=<?php echo h($tweet['tweet_id']); ?>" style="color: #00994C;">編集</a>]
+            <?php endif; ?>
+
+            <?php if($_SESSION['id'] == $tweet['member_id']): ?>
+              [<a href="delete.php?tweet_id=<?php echo h($tweet['tweet_id']); ?>" style="color: #F33;">削除</a>]
+            <?php endif; ?>
           </p>
         </div>
-        <div class="msg">
-          <img src="http://c85c7a.medialib.glogster.com/taniaarca/media/71/71c8671f98761a43f6f50a282e20f0b82bdb1f8c/blog-images-1349202732-fondo-steve-jobs-ipad.jpg" width="48" height="48">
-          <p>
-            つぶやき３<span class="name"> (Seed kun) </span>
-            [<a href="#">Re</a>]
-          </p>
-          <p class="day">
-            <a href="view.html">
-              2016-01-28 18:03
-            </a>
-            [<a href="#" style="color: #00994C;">編集</a>]
-            [<a href="#" style="color: #F33;">削除</a>]
-          </p>
-        </div>
-        <div class="msg">
-          <img src="http://c85c7a.medialib.glogster.com/taniaarca/media/71/71c8671f98761a43f6f50a282e20f0b82bdb1f8c/blog-images-1349202732-fondo-steve-jobs-ipad.jpg" width="48" height="48">
-          <p>
-            つぶやき２<span class="name"> (Seed kun) </span>
-            [<a href="#">Re</a>]
-          </p>
-          <p class="day">
-            <a href="view.html">
-              2016-01-28 18:02
-            </a>
-            [<a href="#" style="color: #00994C;">編集</a>]
-            [<a href="#" style="color: #F33;">削除</a>]
-          </p>
-        </div>
-        <div class="msg">
-          <img src="http://c85c7a.medialib.glogster.com/taniaarca/media/71/71c8671f98761a43f6f50a282e20f0b82bdb1f8c/blog-images-1349202732-fondo-steve-jobs-ipad.jpg" width="48" height="48">
-          <p>
-            つぶやき１<span class="name"> (Seed kun) </span>
-            [<a href="#">Re</a>]
-          </p>
-          <p class="day">
-            <a href="view.html">
-              2016-01-28 18:01
-            </a>
-            [<a href="#" style="color: #00994C;">編集</a>]
-            [<a href="#" style="color: #F33;">削除</a>]
-          </p>
-        </div>
+        <?php endwhile; ?>
+        <ul class="paging">
+          <?php if ($page > 1): ?>
+            <li><a href="index.php?page=<?php echo ($page - 1); ?>">前のページへ</a></li>
+          <?php else: ?>
+            <li>前のページへ</li>
+          <?php endif; ?>
+          <?php if ($page < $maxPage): ?>
+            <li><a href="index.php?page=<?php echo ($page + 1); ?>">次のページへ</a></li>
+          <?php else: ?>
+            <li>次のページへ</li>
+          <?php endif; ?>
+        </ul>
       </div>
 
     </div>
